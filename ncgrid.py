@@ -128,7 +128,9 @@ def Main():
     create.add_argument('end', type=str, help='end date YYYY-MM-DD')
     create.add_argument('count', type=int, help='count of date coordinates to be spaced equally from start to stop inclusive')
     
-    sample = subparsers.add_parser('Sample', help='Sample dated polygon map series to netcdf grid using a query. For each date in the time dimension select polygons where <polyDate> is <ineq> <gridDate> extract <targetfield> choosing max <priorityfield> if n>1')
+    sample = subparsers.add_parser('Sample', help="""Sample dated polygon map series to netcdf grid using a query. 
+        For each date in the time dimension select polygons where <polyDate> is <ineq> <gridDate> extract <targetfield>
+        choosing max <priorityfield> if n>1')"""
     sample.add_argument('ncfile', type=str, help='netcdf file path')
     sample.add_argument('varname', type=str, help='created variable name')
     sample.add_argument('infeatures', type=str, help='input polygon shapefile path')
