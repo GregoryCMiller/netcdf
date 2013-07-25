@@ -1,4 +1,5 @@
-"""ncgrid.py    Sample dated polygons to a 3-D regular grid stored as a netcdf variable"""
+"""ncgrid.py    Sample dated polygons to a 3-D regular grid stored as a netcdf variable
+"""
 import argparse, datetime, os
 import numpy as num
 import netCDF4
@@ -9,7 +10,13 @@ missvals = {'S1':'\x00','f4':9.96920996839e+36,'f8':9.96920996839e+36,'i1':-127,
 npytypes = {'S1':'?str?','f4':'float32','f8':'float64','i1':'int8','i2':'int16','i4':'int32','i8':'int64','u1':'uint8'}
 
 def Create(ncfile, raster, start, end, count, ttype='i4', tunit='days since 1970-01-01 00:00:00'):
-    """Create a NetCDF grid from an input raster and date sequence."""
+    """Create a NetCDF grid from an input raster and date sequence.
+    
+    Create a NETCDF3 CLASSIC file that has dimensions x,y,t. 
+    Dimensions x,y defined by input raster cell size and extent. Input raster projection linear unit must be meters.
+    Dimension t is composed of <count> equally spaced integer dates from <start> to <end> inclusive. 
+    
+    """
     if not os.path.exists(os.path.join(os.path.dirname(ncfile), 'workspace')):
         os.makedirs(os.path.join(os.path.dirname(ncfile), 'workspace'))
     
@@ -42,7 +49,11 @@ def Create(ncfile, raster, start, end, count, ttype='i4', tunit='days since 1970
     rootgrp.close()
 
 def Raster(ncfile, varname, raster, dtype):
-    """Add a raster variable to existing netcdf file"""   
+    """Add a raster xy variable to existing netcdf file. 
+    
+    Input raster is automatically projected and resampled at the input netcdf xy coordinates. 
+    
+    """   
     rootgrp = netCDF4.Dataset(ncfile, 'a')
     arcpy.env.workspace = os.path.join(os.path.dirname(ncfile),'workspace')
     arcpy.CheckOutExtension("spatial")
@@ -57,7 +68,16 @@ def Raster(ncfile, varname, raster, dtype):
     rootgrp.close()
 
 def Sample(ncfile, varname, infeatures, target, ineq, priority, datefield, dateformat, dtype, revpri=False):
-    """Sample a dated polygon map series on the input NetCDF grid. For each date in the time dimension select polygons where <polyDate> is <ineq> <gridDate> extract <targetfield> choosing max <priorityfield> if n>1"""
+    """Sample a dated polygon map series on the input NetCDF grid. 
+    
+    For each date in the time dimension select polygons 
+    where <polyDate> is <ineq> <gridDate> extract <targetfield> 
+    choosing max <priorityfield> if n>1
+    
+    If interpolation is last ( < | <= ) then priority field DAYS70 is fine. 
+    If interpolation is next ( > | >= ) then revpri must be TRUE or input an inverted numeric date field
+    
+    """
     rootgrp = netCDF4.Dataset(ncfile, 'a')
     arcpy.env.snapraster = rootgrp.snapraster
     arcpy.env.workspace = os.path.join(os.path.dirname(ncfile),'workspace')
@@ -97,7 +117,7 @@ def ConvertDateField(inshape, infield, informat, newfield='DAYS70', newtype='LON
         rows.updateRow(row)
 
 def Main():
-    """command line usage"""
+    """command line parser with subcommands for create, raster, sample"""
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="func")
     
