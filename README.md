@@ -6,7 +6,7 @@ Interpolate dated polygon map series to a regular 3-d grid (x,y,t) stored as a n
 
 ### Usage
 
-`ncgrid.py [-h] {Create,Sample,Raster} ...`
+`ncgrid.py {Create,Sample,Raster} ...`
 
 Command | Description           |
 --------|-----------------------|
@@ -23,7 +23,7 @@ Create a NetCDF grid from an input raster and date sequence.
 * **raster** - input raster path
 * **start** - start date YYYY-MM-DD
 * **end** - end date YYYY-MM-DD
-* **count** - count of date coordinates to be spaced equally from start to stop inclusive
+* **freq** - sampling frequency [DAILY,WEEKLY,MONTHLY,YEARLY]
 
 ### **Sample**
 
