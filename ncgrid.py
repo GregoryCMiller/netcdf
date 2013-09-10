@@ -1,19 +1,34 @@
-"""ncgrid.py    Sample dated polygons to a 3-D regular grid stored as a netcdf variable
 """
-import argparse, datetime, os
-import numpy as num
-import netCDF4
+ncgrid
+======
+
+Sample dated polygons to a 3-D regular grid stored as a netcdf variable
+
+
+"""
 import arcpy
+import argparse 
+import datetime
+from dateutil.rrule import rrule, YEARLY, MONTHLY, WEEKLY, DAILY
+import netCDF4
+import numpy as num
+import os
 
 arcpy.env.overwriteOutput = True
 missvals = {'S1':'\x00','f4':9.96920996839e+36,'f8':9.96920996839e+36,'i1':-127,'i2':-32767,'i4':-2147483647,'i8': -9223372036854775806,'u1':255}
 npytypes = {'S1':'?str?','f4':'float32','f8':'float64','i1':'int8','i2':'int16','i4':'int32','i8':'int64','u1':'uint8'}
 
-def Create(ncfile, raster, start, end, count, ttype='i4', tunit='days since 1970-01-01 00:00:00'):
-    """Create a NetCDF grid from an input raster and date sequence.
+def Create(ncfile, raster, start, end, freq='YEARLY', ttype='i4', tunit='days since 1970-01-01 00:00:00'):
+    """Create a NetCDF grid from an input raster and date sequence parameters.
     
-    Create a NETCDF3 CLASSIC file that has dimensions x,y,t. 
-    Dimensions x,y defined by input raster cell size and extent. Input raster projection linear unit must be meters.
+    Create a NETCDF3 CLASSIC file that has dimensions (x,y,t). 
+    
+    
+    Dimensions x,y 
+        - Coordinates are defined as input raster cell centers. 
+        - linear unit must be meters. decimal degrees might cause problems
+    
+    
     Dimension t is composed of <count> equally spaced integer dates from <start> to <end> inclusive. 
     
     """
@@ -25,6 +40,7 @@ def Create(ncfile, raster, start, end, count, ttype='i4', tunit='days since 1970
     rootgrp.snapraster = raster
     rootgrp.spatialreference = desc.spatialReference.name
     rootgrp.cellsize = desc.meanCellHeight
+    rootgrp.linear_unit = desc.spatialReference.linearUnitName
     
     xvals = (num.arange(desc.height) * desc.meanCellHeight) + desc.Extent.XMin + (0.5 * desc.meanCellHeight)
     rootgrp.createDimension('x', len(xvals))    
@@ -38,11 +54,11 @@ def Create(ncfile, raster, start, end, count, ttype='i4', tunit='days since 1970
     ycoord[:] = yvals.astype('int32')
     ycoord.units = 'y ' + desc.spatialReference.linearUnitName    
     
-    start, end = [netCDF4.date2num(datetime.datetime.strptime(t, "%Y-%m-%d"), tunit) for t in [start, end]]
-    tvals = num.linspace(start, end, num=count, endpoint=True)
+    start, end = [datetime.datetime.strptime(t, "%Y-%m-%d") for t in [start, end]]
+    tvals = [netCDF4.date2num(dt, tunit) for dt in rrule(eval(freq), dtstart=start, until=end)]
     rootgrp.createDimension('t', len(tvals))
     tcoord = rootgrp.createVariable('tcoord', ttype, ('t',))
-    tcoord[:] = tvals.astype(npytypes[ttype])
+    tcoord[:] = num.array(tvals, dtype=npytypes[ttype])
     tcoord.units = tunit
     
     print rootgrp
@@ -61,7 +77,8 @@ def Raster(ncfile, varname, raster, dtype):
     arcpy.ProjectRaster_management(raster, 'prj', rootgrp.snapraster, 'NEAREST', cell_size=rootgrp.cellsize)
     outExtractByMask = arcpy.sa.ExtractByMask('prj', rootgrp.snapraster)
     outExtractByMask.save('clip')
-    var = rootgrp.createVariable(varname, dtype, ('x','y'), fill_value=missvals[dtype])
+    var = rootgrp.createVariable(varname, dtype, ('x','y'), )#fill_value=missvals[dtype])
+    #var.missingvalue
     var[:,:] = arcpy.RasterToNumPyArray('clip').astype(npytypes[dtype])
 
     print var
@@ -70,14 +87,16 @@ def Raster(ncfile, varname, raster, dtype):
 def Sample(ncfile, varname, infeatures, target, ineq, priority, datefield, dateformat, dtype, revpri=False):
     """Sample a dated polygon map series on the input NetCDF grid. 
     
-    For each date in the time dimension select polygons 
-    where <polyDate> is <ineq> <gridDate> extract <targetfield> 
+    For each date coordinate in the netcdf time dimension 
+    
+    select polygons where <polyDate> is <ineq> <gridDate> extract <targetfield> 
     choosing max <priorityfield> if n>1
     
     If interpolation is last ( < | <= ) then priority field DAYS70 is fine. 
     If interpolation is next ( > | >= ) then revpri must be TRUE or input an inverted numeric date field
     
     """
+    
     rootgrp = netCDF4.Dataset(ncfile, 'a')
     arcpy.env.snapraster = rootgrp.snapraster
     arcpy.env.workspace = os.path.join(os.path.dirname(ncfile),'workspace')
@@ -89,7 +108,9 @@ def Sample(ncfile, varname, infeatures, target, ineq, priority, datefield, datef
         arcpy.CalculateField_management(temp, priority,'-{}'.format(priority))
     
     arcpy.MakeFeatureLayer_management(temp, "lyr")  
-    var = rootgrp.createVariable(varname, dtype, ('x','y','t'), fill_value=missvals[dtype])
+    var = rootgrp.createVariable(varname, dtype, ('x','y','t'))
+    
+    var[:] = missvals[dtype]
     for (i, date) in enumerate(rootgrp.variables['tcoord'][:]):
         arcpy.SelectLayerByAttribute_management("lyr", "NEW_SELECTION", '{} {} {}'.format('DAYS70', ineq, date))
         raster = os.path.join(arcpy.env.workspace, 'r{}'.format(i) )
@@ -126,11 +147,11 @@ def Main():
     create.add_argument('raster', type=str, help='input raster path')
     create.add_argument('start', type=str, help='start date YYYY-MM-DD')
     create.add_argument('end', type=str, help='end date YYYY-MM-DD')
-    create.add_argument('count', type=int, help='count of date coordinates to be spaced equally from start to stop inclusive')
+    create.add_argument('freq', type=str, help='frequency of date samples',choices=['YEARLY','MONTHLY','WEEKLY','DAILY'])
     
-    sample = subparsers.add_parser('Sample', help="""Sample dated polygon map series to netcdf grid using a query. 
+    sample = subparsers.add_parser('Sample', help=("""Sample dated polygon map series to netcdf grid using a query. 
         For each date in the time dimension select polygons where <polyDate> is <ineq> <gridDate> extract <targetfield>
-        choosing max <priorityfield> if n>1')"""
+        choosing max <priorityfield> if n>1')"""))
     sample.add_argument('ncfile', type=str, help='netcdf file path')
     sample.add_argument('varname', type=str, help='created variable name')
     sample.add_argument('infeatures', type=str, help='input polygon shapefile path')
@@ -153,4 +174,3 @@ def Main():
     
 if __name__ == '__main__':
     Main()
-        
