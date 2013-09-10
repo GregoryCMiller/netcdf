@@ -27,7 +27,8 @@ Create a NetCDF grid from an input raster and date sequence.
 
 ### **Sample**
 
-Sample dated polygon map series to netcdf grid using a query. For each date in the time dimension select polygons where *polyDate* is *ineq* *gridDate* extract *targetfield* choosing max *priorityfield* if n>1')
+Sample dated polygon map series to netcdf grid using a query. 
+
 
 * **ncfile** - netcdf file path
 * **varname** - created variable name
@@ -40,6 +41,12 @@ Sample dated polygon map series to netcdf grid using a query. For each date in t
 * **dtype** - created variable data type
 * **revpri** - (optional) reverse order indicated by priority field (-1 * x)
 
+Query 
+
+    For each date in the time dimension
+    select polygons where *polyDate* is *ineq* *gridDate*
+    extract *targetfield* (choosing max *priorityfield* if n>1')
+    
 ### **Raster**
 
 Add a single raster variable to existing netcdf file
@@ -53,8 +60,10 @@ Add a single raster variable to existing netcdf file
 
 * dimensions x,y,t
 * coordinate variables xcoord, ycoord, tcoord, datestr 
-* additional attributes
+* global attributes
     * spatial_reference
     * linear_unit
     * cellsize
-
+    * 
+* Variable attributes
+    * _FillValue
