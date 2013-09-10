@@ -1,11 +1,11 @@
 """
-ncgrid
+netcdf
 ======
 
-Sample dated polygons to a 3-D regular grid stored as a netcdf variable
-
+Interpolate dated polygon map series to a regular 3-d grid (x,y,t) stored as a netcdf variable
 
 """
+
 import arcpy
 import argparse 
 import datetime
@@ -15,10 +15,15 @@ import numpy as num
 import os
 
 arcpy.env.overwriteOutput = True
-missvals = {'S1':'\x00','f4':9.96920996839e+36,'f8':9.96920996839e+36,'i1':-127,'i2':-32767,'i4':-2147483647,'i8': -9223372036854775806,'u1':255}
-npytypes = {'S1':'?str?','f4':'float32','f8':'float64','i1':'int8','i2':'int16','i4':'int32','i8':'int64','u1':'uint8'}
 
-def Create(ncfile, raster, start, end, freq='YEARLY', ttype='i4', tunit='days since 1970-01-01 00:00:00'):
+missvals = {'S1':'\x00','f4':9.96920996839e+36,'f8':9.96920996839e+36,'i1':-127,
+            'i2':-32767,'i4':-2147483647,'i8': -9223372036854775806,'u1':255}
+
+npytypes = {'S1':'?str?','f4':'float32','f8':'float64','i1':'int8','i2':'int16',
+            'i4':'int32','i8':'int64','u1':'uint8'}
+
+def Create(ncfile, raster, start, end, freq='YEARLY', ttype='i4', 
+           tunit='days since 1970-01-01 00:00:00', xytype='i4'):
     """Create a NetCDF grid from an input raster and date sequence parameters.
     
     Create a NETCDF3 CLASSIC file that has dimensions (x,y,t). 
@@ -41,26 +46,30 @@ def Create(ncfile, raster, start, end, freq='YEARLY', ttype='i4', tunit='days si
     rootgrp.spatialreference = desc.spatialReference.name
     rootgrp.cellsize = desc.meanCellHeight
     rootgrp.linear_unit = desc.spatialReference.linearUnitName
-    
-    xvals = (num.arange(desc.height) * desc.meanCellHeight) + desc.Extent.XMin + (0.5 * desc.meanCellHeight)
+
+    xvals = (num.arange(desc.height) * desc.meanCellHeight) + desc.Extent.XMin + (0.5 * desc.meanCellHeight)    
     rootgrp.createDimension('x', len(xvals))    
-    xcoord = rootgrp.createVariable('xcoord', 'i4', ('x',))
-    xcoord[:] = xvals.astype('int32')
+    xcoord = rootgrp.createVariable('xcoord', xytype, ('x',))
+    xcoord[:] = xvals.astype(npytypes[xytype])
     xcoord.units = 'x ' + desc.spatialReference.linearUnitName    
-    
-    yvals = (num.arange(desc.width) * desc.meanCellWidth) + desc.Extent.YMin + (0.5 * desc.meanCellWidth)
+
+    yvals = (num.arange(desc.width) * desc.meanCellWidth) + desc.Extent.YMin + (0.5 * desc.meanCellWidth)    
     rootgrp.createDimension('y', len(yvals))
-    ycoord = rootgrp.createVariable('ycoord', 'i4', ('y',))
-    ycoord[:] = yvals.astype('int32')
+    ycoord = rootgrp.createVariable('ycoord', xytype, ('y',))
+    ycoord[:] = yvals.astype(npytypes[xytype])
     ycoord.units = 'y ' + desc.spatialReference.linearUnitName    
     
     start, end = [datetime.datetime.strptime(t, "%Y-%m-%d") for t in [start, end]]
-    tvals = [netCDF4.date2num(dt, tunit) for dt in rrule(eval(freq), dtstart=start, until=end)]
-    rootgrp.createDimension('t', len(tvals))
+    dtvals = [dt for dt in rrule(eval(freq), dtstart=start, until=end)]
+    timevals = [netCDF4.date2num(dt, tunit) for dt in dtvals]
+    rootgrp.createDimension('t', len(timevals))
     tcoord = rootgrp.createVariable('tcoord', ttype, ('t',))
-    tcoord[:] = num.array(tvals, dtype=npytypes[ttype])
+    tcoord[:] = num.array(timevals, dtype=npytypes[ttype])
     tcoord.units = tunit
     
+    date = rootgrp.createVariable('date', 'S1', ('t',))
+    date[:] = [datetime.datetime.strftime(dt, "%Y-%m-%d") for dt in dtvals]
+        
     print rootgrp
     rootgrp.close()
 
@@ -77,9 +86,9 @@ def Raster(ncfile, varname, raster, dtype):
     arcpy.ProjectRaster_management(raster, 'prj', rootgrp.snapraster, 'NEAREST', cell_size=rootgrp.cellsize)
     outExtractByMask = arcpy.sa.ExtractByMask('prj', rootgrp.snapraster)
     outExtractByMask.save('clip')
-    var = rootgrp.createVariable(varname, dtype, ('x','y'), )#fill_value=missvals[dtype])
-    #var.missingvalue
-    var[:,:] = arcpy.RasterToNumPyArray('clip').astype(npytypes[dtype])
+    
+    var = rootgrp.createVariable(varname, dtype, ('x','y'), fill_value=missvals[dtype])
+    var[:,:] = arcpy.RasterToNumPyArray('clip', nodata_to_value=missvals[dtype]).astype(npytypes[dtype])
 
     print var
     rootgrp.close()
@@ -104,13 +113,18 @@ def Sample(ncfile, varname, infeatures, target, ineq, priority, datefield, datef
     temp = os.path.join(arcpy.env.workspace, os.path.basename(infeatures))
     arcpy.Copy_management(infeatures, temp)
     ConvertDateField(temp, datefield, dateformat)
-    if revpri: # option to overwrite priority field with negative of original values
-        arcpy.CalculateField_management(temp, priority,'-{}'.format(priority))
     
+    if revpri: # option to make new priority field with negative of original values
+        if len(arcpy.ListFields(temp, 'REVPRI')) == 0:
+            arcpy.AddField_management(temp, 'REVPRI', 'LONG')
+    
+        arcpy.CalculateField_management(temp, 'REVPRI', '-{}'.format(priority))
+        priority = 'REVPRI'
+        
     arcpy.MakeFeatureLayer_management(temp, "lyr")  
-    var = rootgrp.createVariable(varname, dtype, ('x','y','t'))
     
-    var[:] = missvals[dtype]
+    var = rootgrp.createVariable(varname, dtype, ('x','y','t'), fill_value=missvals[dtype])
+    
     for (i, date) in enumerate(rootgrp.variables['tcoord'][:]):
         arcpy.SelectLayerByAttribute_management("lyr", "NEW_SELECTION", '{} {} {}'.format('DAYS70', ineq, date))
         raster = os.path.join(arcpy.env.workspace, 'r{}'.format(i) )
@@ -122,7 +136,7 @@ def Sample(ncfile, varname, infeatures, target, ineq, priority, datefield, datef
             else: 
                 break
         
-        var[:,:,i] = arcpy.RasterToNumPyArray(raster).astype(npytypes[dtype])
+        var[:,:,i] = arcpy.RasterToNumPyArray(raster, nodata_to_value=missvals[dtype]).astype(npytypes[dtype])
     
     arcpy.Delete_management("lyr")
     print var
@@ -137,6 +151,7 @@ def ConvertDateField(inshape, infield, informat, newfield='DAYS70', newtype='LON
         setattr(row, newfield, str(num.array(netCDF4.date2num(dt, outformat), dtype=npytypes[dtype])))
         rows.updateRow(row)
 
+    
 def Main():
     """command line parser with subcommands for create, raster, sample"""
     parser = argparse.ArgumentParser()
@@ -161,7 +176,7 @@ def Main():
     sample.add_argument('datefield', type=str, help='input date field name')
     sample.add_argument('dateformat', type=str, help='input date format string (strptime format)')
     sample.add_argument('dtype', type=str, help='created variable data type')
-    sample.add_argument('-revpri', default=False, action='store_true', help='reverse order indicated by priority field (-1 * x)')
+    sample.add_argument('--revpri', default=False, action='store_true', help='reverse order indicated by priority field (-1 * x)')
     
     raster = subparsers.add_parser('Raster', help='Add a single raster variable to existing netcdf file')    
     raster.add_argument('ncfile', type=str, help='netcdf file path')
