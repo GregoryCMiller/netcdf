@@ -1,18 +1,17 @@
 netcdf
 ======
 
-Interpolate dated polygon map series to a regular 3-d grid (x,y,t) stored as a netcdf variable
-
 
 ### Usage
 
 `ncgrid.py {Create,Sample,Raster} ...`
 
-Command | Description           |
---------|-----------------------|
-Create  | Create NetCDF file    |
-Sample  | Sample dated polygons |
-Raster  | sample xy raster      |
+
+Command | Description                                                            |
+--------|------------------------------------------------------------------------|
+Create  | Create regular x,y,t netcdf file from an input raster and date series. |
+Sample  | Sample dated polygon map series at x,y,t grid coordinates.             |
+Raster  | Sample x,y raster at netcdf x,y grid coordinates                       |
 
 
 ### **Create**
