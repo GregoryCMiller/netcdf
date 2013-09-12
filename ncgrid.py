@@ -193,9 +193,12 @@ def Main():
     create.add_argument('end', type=str, help='end date YYYY-MM-DD')
     create.add_argument('freq', type=str, help='frequency of date samples',choices=['YEARLY','MONTHLY','WEEKLY','DAILY'])
     
-    sample = subparsers.add_parser('Sample', help=("""Sample dated polygon map series to netcdf grid using a query. 
-        For each date in the time dimension select polygons where <polyDate> is <ineq> <gridDate> extract <targetfield>
-        choosing max <priorityfield> if n>1')"""))
+    sample = subparsers.add_parser('Sample', help=(
+        "Sample dated polygon map series to netcdf grid using a query. " 
+        "For each date in the time dimension select polygons "
+        "where <polyDate> is <ineq> <gridDate> extract <targetfield> "
+        "choosing max <priorityfield> if n>1')"))
+        
     sample.add_argument('ncfile', type=str, help='netcdf file path')
     sample.add_argument('varname', type=str, help='created variable name')
     sample.add_argument('infeatures', type=str, help='input polygon shapefile path')
@@ -205,7 +208,7 @@ def Main():
     sample.add_argument('datefield', type=str, help='input date field name')
     sample.add_argument('dateformat', type=str, help='input date format string (strptime format)')
     sample.add_argument('dtype', type=str, help='created variable data type')
-    sample.add_argument('--revpri', default=False, action='store_true', help='reverse order indicated by priority field (-1 * x)')
+    sample.add_argument('--revpri', default=False, action='store_true', help='reverse priority')
     
     raster = subparsers.add_parser('Raster', help='Add a single raster variable to existing netcdf file')    
     raster.add_argument('ncfile', type=str, help='netcdf file path')
