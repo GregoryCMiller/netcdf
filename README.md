@@ -7,11 +7,11 @@ netcdf
 `ncgrid.py {Create,Sample,Raster} ...`
 
 
-Command | Description                                                            |
---------|------------------------------------------------------------------------|
-Create  | Create regular x,y,t netcdf file from an input raster and date series. |
-Sample  | Sample dated polygon map series at x,y,t grid coordinates.             |
-Raster  | Sample x,y raster at netcdf x,y grid coordinates                       |
+Subcommand | Description                                                           |
+---------- | --------------------------------------------------------------------- |
+Create     | Create regular x,y,t netcdf file from an input raster and date series |
+Sample     | Sample dated polygon map series at x,y,t grid coordinates.            |
+Raster     | Sample x,y raster at netcdf x,y grid coordinates                      |
 
 
 ### **Create**
@@ -19,7 +19,7 @@ Raster  | Sample x,y raster at netcdf x,y grid coordinates                      
 Create regular x,y,t netcdf file from an input raster and date series.
 
 Parameter | Description                                      |
---------- | -------------------------------------------------|
+--------- | ------------------------------------------------ |
 ncfile    | output netcdf path                               |
 raster    | input raster path                                |
 start     | start date YYYY-MM-DD                            |
@@ -31,7 +31,7 @@ freq      | sampling frequency [DAILY,WEEKLY,MONTHLY,YEARLY] |
 Sample dated polygon map series to netcdf grid using a query. 
 
 Parameter  | Description                                     |
----------- | ------------------------------------------------|
+---------- | ----------------------------------------------- |
 ncfile     | netcdf file path                                |
 varname    | created variable name                           |
 infeatures | input polygon shapefile path                    |
@@ -54,7 +54,7 @@ Query
 Add a single raster variable to existing netcdf file
 
 Parameter| Description           |
--------- | ----------------------|
+-------- | --------------------- |
 ncfile   | netcdf file path      | 
 varname  | created variable name |
 raster   | input raster          |
