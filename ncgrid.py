@@ -28,13 +28,10 @@ def Create(ncfile, raster, start, end, freq='YEARLY', ttype='i4',
     
     Create a NETCDF3 CLASSIC file that has dimensions (x,y,t). 
     
-    
     Dimensions x,y 
         - Coordinates are defined as input raster cell centers. 
         - linear unit must be meters. decimal degrees might cause problems
     
-    
-    Dimension t is composed of <count> equally spaced integer dates from <start> to <end> inclusive. 
     
     """
     if not os.path.exists(os.path.join(os.path.dirname(ncfile), 'workspace')):
