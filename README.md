@@ -16,29 +16,32 @@ Raster  | Sample x,y raster at netcdf x,y grid coordinates                      
 
 ### **Create**
 
-Create a NetCDF grid from an input raster and date sequence.
+Create regular x,y,t netcdf file from an input raster and date series.
 
-* **ncfile** - output netcdf path
-* **raster** - input raster path
-* **start** - start date YYYY-MM-DD
-* **end** - end date YYYY-MM-DD
-* **freq** - sampling frequency [DAILY,WEEKLY,MONTHLY,YEARLY]
+Parameter | Description                                      |
+--------- | -------------------------------------------------|
+ncfile    | output netcdf path                               |
+raster    | input raster path                                |
+start     | start date YYYY-MM-DD                            |
+end       | end date YYYY-MM-DD                              |
+freq      | sampling frequency [DAILY,WEEKLY,MONTHLY,YEARLY] |
 
 ### **Sample**
 
 Sample dated polygon map series to netcdf grid using a query. 
 
-
-* **ncfile** - netcdf file path
-* **varname** - created variable name
-* **infeatures** - input polygon shapefile path
-* **target** - extracted variable field name
-* **ineq** - inequality used in query
-* **priority** - priority field if multiple polygons meet query
-* **datefield** - input date field name
-* **dateformat** - input date format string (strptime format)
-* **dtype** - created variable data type
-* **revpri** - (optional) reverse order indicated by priority field (-1 * x)
+Parameter  | Description                                     |
+---------- | ------------------------------------------------|
+ncfile     | netcdf file path                                |
+varname    | created variable name                           |
+infeatures | input polygon shapefile path                    |
+target     | extracted variable field name                   |
+ineq       | inequality used in query                        |
+priority   | priority field if multiple polygons match query |
+datefield  | input date field name                           |
+dateformat | input date format string (strptime format)      |
+dtype      | created variable data type                      |
+--revpri   | reverse priority (-1 * priority)                |
 
 Query 
 
@@ -50,19 +53,9 @@ Query
 
 Add a single raster variable to existing netcdf file
 
-* **ncfile** - netcdf file path
-* **varname** - created variable name
-* **raster** - input raster
-* **dtype** - data type
-
-### Output file
-
-* dimensions x,y,t
-* coordinate variables xcoord, ycoord, tcoord, datestr 
-* global attributes
-    * spatial_reference
-    * linear_unit
-    * cellsize
-    * 
-* Variable attributes
-    * _FillValue
+Parameter| Description           |
+-------- | ----------------------|
+ncfile   | netcdf file path      | 
+varname  | created variable name |
+raster   | input raster          |
+dtype    | data type             |
