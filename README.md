@@ -1,4 +1,4 @@
-netcdf
+ncgrid
 ======
 
 
@@ -6,12 +6,11 @@ netcdf
 
 `ncgrid.py {Create,Sample,Raster} ...`
 
-
 Subcommand | Description                                                           |
----------- | --------------------------------------------------------------------- |
-Create     | Create regular x,y,t netcdf file from an input raster and date series |
-Sample     | Sample dated polygon map series at x,y,t grid coordinates.            |
-Raster     | Sample x,y raster at netcdf x,y grid coordinates                      |
+---------- | ------------------------------------------------------------- |
+Create     | Create x,y,t netcdf file from an input raster and date series |
+Sample     | Sample dated polygon map series at x,y,t grid coordinates.    |
+Raster     | Sample x,y raster at netcdf x,y grid coordinates              |
 
 
 ## **Create**
@@ -25,6 +24,7 @@ raster    | input raster path                                |
 start     | start date YYYY-MM-DD                            |
 end       | end date YYYY-MM-DD                              |
 freq      | sampling frequency [DAILY,WEEKLY,MONTHLY,YEARLY] |
+
 
 ## **Sample**
 
@@ -48,6 +48,7 @@ Query
     For each date in the time dimension
     select polygons where *polyDate* is *ineq* *gridDate*
     extract *targetfield* (choosing max *priorityfield* if n>1')
+
     
 ## **Raster**
 
