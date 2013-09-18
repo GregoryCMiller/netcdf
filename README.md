@@ -5,8 +5,8 @@ ncgrid
 ## Usage
 
 `ncgrid.py {Create,Sample,Raster} ...`
-
-Subcommand | Description                                                           |
+                                                                                
+Subcommand | Description                                                   |
 ---------- | ------------------------------------------------------------- |
 Create     | Create x,y,t netcdf file from an input raster and date series |
 Sample     | Sample dated polygon map series at x,y,t grid coordinates.    |
@@ -15,15 +15,15 @@ Raster     | Sample x,y raster at netcdf x,y grid coordinates              |
 
 ## **Create**
 
-Create regular x,y,t netcdf file from an input raster and date series.
+Create regular x,y,t netcdf file. 
 
-Parameter | Description                                      |
---------- | ------------------------------------------------ |
-ncfile    | output netcdf path                               |
-raster    | input raster path                                |
-start     | start date YYYY-MM-DD                            |
-end       | end date YYYY-MM-DD                              |
-freq      | sampling frequency [DAILY,WEEKLY,MONTHLY,YEARLY] |
+Parameter | Description                                            |
+--------- | ------------------------------------------------------ |
+ncfile    | Output netcdf file path                                |
+raster    | Input raster file                                     |
+start     | Start date YYYY-MM-DD                                  |
+end       | End date YYYY-MM-DD                                    |
+freq      | Time dimension frequency [DAILY,WEEKLY,MONTHLY,YEARLY] |
 
 
 ## **Sample**
@@ -32,16 +32,16 @@ Sample dated polygon map series to netcdf grid using a query.
 
 Parameter  | Description                                     |
 ---------- | ----------------------------------------------- |
-ncfile     | netcdf file path                                |
-varname    | created variable name                           |
-infeatures | input polygon shapefile path                    |
-target     | extracted variable field name                   |
-ineq       | inequality used in query                        |
-priority   | priority field if multiple polygons match query |
-datefield  | input date field name                           |
-dateformat | input date format string (strptime format)      |
-dtype      | created variable data type                      |
---revpri   | reverse priority (-1 * priority)                |
+ncfile     | Netcdf file path                                |
+varname    | Created variable name                           |
+infeatures | Input polygon shapefile path                    |
+target     | Extracted variable field name                   |
+ineq       | Inequality used in query [<,<=,>=,>]            |
+priority   | Priority field if multiple polygons match query |
+datefield  | Input date field name                           |
+dateformat | Input date format string (%Y-%m-%d)             |
+dtype      | Created variable data type                      |
+--revpri   | Reverse priority (-1 * priority)                |
 
 Query 
 
@@ -56,7 +56,7 @@ Add a single raster variable to existing netcdf file
 
 Parameter| Description           |
 -------- | --------------------- |
-ncfile   | netcdf file path      | 
-varname  | created variable name |
-raster   | input raster          |
-dtype    | data type             |
+ncfile   | Netcdf file path      | 
+varname  | Created variable name |
+raster   | Input raster          |
+dtype    | Data type             |
