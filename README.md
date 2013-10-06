@@ -24,7 +24,7 @@ raster    | Input raster file                                       |
 start     | Start date YYYY-MM-DD                                   |
 end       | End date YYYY-MM-DD                                     |
 freq      | Time dimension frequency [DAILY,WEEKLY,MONTHLY,YEARLY]  |
-tunit     | time units (default = "days since 1970-01-01 00:00:00") |
+tunit     | time units (default = "days since 1900-01-01 00:00:00") |
 ttype     | time data type (default = "i4")                         |
 
 ## **Sample**
