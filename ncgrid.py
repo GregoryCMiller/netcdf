@@ -1,18 +1,18 @@
 """
-netcdf
+ncgrid
 ======
 
-Interpolate dated polygon map series to a regular 3-d grid (x,y,t) stored as a netcdf variable
-
+Interpolate dated polygon map series to a 3-d (x,y,t) lattice (netcdf file)
 """
-
-import arcpy
 import argparse 
 import datetime
 from dateutil.rrule import rrule, YEARLY, MONTHLY, WEEKLY, DAILY
+import os
+
+import arcpy
 import netCDF4
 import numpy as num
-import os
+from pathlib import Path
 
 arcpy.env.overwriteOutput = True
 
@@ -21,24 +21,26 @@ missvals = {'S1':'\x00','f4':9.96920996839e+36,'f8':9.96920996839e+36,'i1':-127,
 
 npytypes = {'S1':'?str?','f4':'float32','f8':'float64','i1':'int8','i2':'int16',
             'i4':'int32','i8':'int64','u1':'uint8'}
-
-def Create(ncfile, raster, start, end, freq='YEARLY', ttype='i4', 
+    
+def create(ncfile, raster, start, end, freq='YEARLY', ttype='i4', 
            tunit='days since 1970-01-01 00:00:00', xytype='i4'):
-    """Create a NetCDF grid from an input raster and date sequence parameters.
+    """Create a NetCDF file with dimensions based on input raster and frequency.
     
-    Create a NETCDF3 CLASSIC file that has dimensions (x,y,t). 
-    
-    
-    Dimensions x,y 
-        - Coordinates are defined as input raster cell centers. 
-        - linear unit must be meters. decimal degrees might cause problems
-    
-    
-    Dimension t is composed of <count> equally spaced integer dates from <start> to <end> inclusive. 
-    
+    Parameter  Description  
+    =========  ===================================
+    ncfile     created netcdf file path
+    raster     ESRI GRID raster. cell centers define the lattice points. linear_unit in meters. 
+    start      timeseries start date "YYYY-MM-DD"             
+    end        timeseries end date "YYYY-MM-DD"
+    freq       sampling frequency [YEARLY, MONTHLY, WEEKLY, DAILY]
+    ttype      time datatype
+    tunit      time units
+    xytype     xy units
+
     """
-    if not os.path.exists(os.path.join(os.path.dirname(ncfile), 'workspace')):
-        os.makedirs(os.path.join(os.path.dirname(ncfile), 'workspace'))
+    ws = Path(ncfile).parent['workspace']
+    if not ws.exists():
+        ws.mkdir()
     
     rootgrp = netCDF4.Dataset(ncfile, 'w', format='NETCDF3_CLASSIC')
     desc = arcpy.Describe(raster)
@@ -47,13 +49,13 @@ def Create(ncfile, raster, start, end, freq='YEARLY', ttype='i4',
     rootgrp.cellsize = desc.meanCellHeight
     rootgrp.linear_unit = desc.spatialReference.linearUnitName
 
-    xvals = (num.arange(desc.height) * desc.meanCellHeight) + desc.Extent.XMin + (0.5 * desc.meanCellHeight)    
+    xvals = (num.arange(desc.height) * desc.meanCellHeight) + desc.Extent.XMin + (0.5 * desc.meanCellHeight)        
     rootgrp.createDimension('x', len(xvals))    
     xcoord = rootgrp.createVariable('xcoord', xytype, ('x',))
     xcoord[:] = xvals.astype(npytypes[xytype])
-    xcoord.units = 'x ' + desc.spatialReference.linearUnitName    
+    xcoord.units = 'x ' + desc.spatialReference.linearUnitName
 
-    yvals = (num.arange(desc.width) * desc.meanCellWidth) + desc.Extent.YMin + (0.5 * desc.meanCellWidth)    
+    yvals = (num.arange(desc.width) * desc.meanCellWidth) + desc.Extent.YMin + (0.5 * desc.meanCellWidth)
     rootgrp.createDimension('y', len(yvals))
     ycoord = rootgrp.createVariable('ycoord', xytype, ('y',))
     ycoord[:] = yvals.astype(npytypes[xytype])
@@ -73,14 +75,15 @@ def Create(ncfile, raster, start, end, freq='YEARLY', ttype='i4',
     print rootgrp
     rootgrp.close()
 
-def Raster(ncfile, varname, raster, dtype):
+def raster(ncfile, varname, raster, dtype):
     """Add a raster xy variable to existing netcdf file. 
     
     Input raster is automatically projected and resampled at the input netcdf xy coordinates. 
     
     """   
     rootgrp = netCDF4.Dataset(ncfile, 'a')
-    arcpy.env.workspace = os.path.join(os.path.dirname(ncfile),'workspace')
+    arcpy.env.workspace = str(Path(ncfile).parent()['workspace'])
+    #arcpy.env.workspace = os.path.join(os.path.dirname(ncfile),'workspace')
     arcpy.CheckOutExtension("spatial")
     
     arcpy.ProjectRaster_management(raster, 'prj', rootgrp.snapraster, 'NEAREST', cell_size=rootgrp.cellsize)
@@ -93,7 +96,7 @@ def Raster(ncfile, varname, raster, dtype):
     print var
     rootgrp.close()
 
-def Sample(ncfile, varname, infeatures, target, ineq, priority, datefield, dateformat, dtype, revpri=False):
+def sample(ncfile, varname, infeatures, target, ineq, priority, datefield, dateformat, dtype, revpri=False):
     """Sample a dated polygon map series on the input NetCDF grid. 
     
     For each date coordinate in the netcdf time dimension 
@@ -108,12 +111,13 @@ def Sample(ncfile, varname, infeatures, target, ineq, priority, datefield, datef
     # open the dataset, set env variables 
     rootgrp = netCDF4.Dataset(ncfile, 'a')
     arcpy.env.snapraster = rootgrp.snapraster
-    arcpy.env.workspace = os.path.join(os.path.dirname(ncfile),'workspace')
+    #arcpy.env.workspace = os.path.join(os.path.dirname(ncfile),'workspace')
+    arcpy.env.workspace = str(Path(ncfile).parent()['workspace'])
     
     # copy input shapefile and convert dates 
     temp = os.path.join(arcpy.env.workspace, os.path.basename(infeatures))
     arcpy.Copy_management(infeatures, temp)
-    ConvertDateField(temp, datefield, dateformat)
+    convert_shapefile_date_field(temp, datefield, dateformat)
     
     # reverse priority: create new field that is the reverse of the priority field
     if revpri:
@@ -147,7 +151,7 @@ def Sample(ncfile, varname, infeatures, target, ineq, priority, datefield, datef
     print var
     rootgrp.close()
      
-def ConvertDateField(inshape, infield, informat, newfield='DAYS70', newtype='LONG', outformat='days since 1970-01-01 00:00:00', dtype='i4'):   
+def convert_shapefile_date_field(inshape, infield, informat, newfield='DAYS70', newtype='LONG', outformat='days since 1970-01-01 00:00:00', dtype='i4'):   
     """Convert dates from an existing field/format into days since epoch integer field"""
     arcpy.AddField_management(inshape, newfield, newtype)    
     rows = arcpy.UpdateCursor(inshape)
@@ -157,22 +161,22 @@ def ConvertDateField(inshape, infield, informat, newfield='DAYS70', newtype='LON
         rows.updateRow(row)
 
     
-def Main():
+def command_args():
     """command line parser with subcommands for create, raster, sample"""
     parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers(dest="func")
-    
-    create = subparsers.add_parser('Create', help='Create a NetCDF grid from an input raster and date sequence. ')
+    subparsers = parser.add_subparsers(dest="cmd")
+
+    create = subparsers.add_parser('create', help='Create a NetCDF grid from an input raster and date sequence. ')
     create.add_argument('ncfile', type=str, help='output netcdf path')
     create.add_argument('raster', type=str, help='input raster path')
     create.add_argument('start', type=str, help='start date YYYY-MM-DD')
     create.add_argument('end', type=str, help='end date YYYY-MM-DD')
     create.add_argument('freq', type=str, help='frequency of date samples',choices=['YEARLY','MONTHLY','WEEKLY','DAILY'])
-    
-    sample = subparsers.add_parser('Sample', help=("""Sample dated polygon map series to netcdf grid using a query. 
+
+    sample = subparsers.add_parser('sample', help=("""Sample dated polygon map series to netcdf grid using a query. 
         For each date in the time dimension select polygons where <polyDate> is <ineq> <gridDate> extract <targetfield>
         choosing max <priorityfield> if n>1')"""))
-        
+
     sample.add_argument('ncfile', type=str, help='netcdf file path')
     sample.add_argument('varname', type=str, help='created variable name')
     sample.add_argument('infeatures', type=str, help='input polygon shapefile path')
@@ -183,15 +187,15 @@ def Main():
     sample.add_argument('dateformat', type=str, help='input date format string (strptime format)')
     sample.add_argument('dtype', type=str, help='created variable data type')
     sample.add_argument('--revpri', default=False, action='store_true', help='reverse order indicated by priority field (-1 * x)')
-    
-    raster = subparsers.add_parser('Raster', help='Add a single raster variable to existing netcdf file')    
+
+    raster = subparsers.add_parser('raster', help='Add a single raster variable to existing netcdf file')
     raster.add_argument('ncfile', type=str, help='netcdf file path')
     raster.add_argument('varname', type=str, help='created variable name')
     raster.add_argument('raster', type=str, help='input raster')
-    raster.add_argument('dtype', type=str, help='data type')    
+    raster.add_argument('dtype', type=str, help='data type')
     
-    args = vars(parser.parse_args())
-    globals()[args.pop('func')](**args)
+    return vars(parser.parse_args())
     
 if __name__ == '__main__':
-    Main()
+    args = command_args()
+    globals()[args.pop('cmd')](**args)

@@ -59,6 +59,8 @@ Query
     select polygons where *polyDate* is *ineq* *gridDate*
     extract *targetfield* (choosing max *priorityfield* if n>1')
 
+option `--revpri` should be used in queries of the 'next' feature of interest 
+(earliest feature that is greater than current date). 
     
 Raster
 ------
