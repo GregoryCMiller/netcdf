@@ -1,30 +1,33 @@
 ncgrid
 ======
 
+Interpolate dated polygon map series to a 3-d (x,y,t) lattice (netcdf file)
+
+
 Usage
 -----
 
-`ncgrid.py {Create,Sample,Raster} ...`
+`ncgrid.py {Create,Sample,Raster} [command options]`
 
 ==========  ==============================================================                                                                            
-Subcommand  Description                                                   
+Command     Description                                                   
 ==========  ==============================================================                                                                            
-Create      Create x,y,t netcdf file from an input raster and date series 
-Sample      Sample dated polygon map series at x,y,t grid coordinates.    
-Raster      Sample x,y raster at netcdf x,y grid coordinates              
+create      Create x,y,t netcdf file from an input raster and date series 
+sample      Sample dated polygon map series at x,y,t grid coordinates.    
+raster      Sample x,y raster at netcdf x,y grid coordinates              
 ==========  ==============================================================                                                                            
 
 
 Create
 ------
 
-Create regular x,y,t netcdf file. 
+Create x,y,t lattice netcdf file. 
 
 =========  ==============================================================                                                                            
 Parameter  Description                                             
 =========  ==============================================================                                                                            
-ncfile     Output netcdf file path                                 
-raster     Input raster file                                       
+ncfile     Created netcdf file path                                 
+raster     Input raster file. Defines xy lattice                                      
 start      Start date YYYY-MM-DD                                   
 end        End date YYYY-MM-DD                                     
 freq       Time dimension frequency [DAILY,WEEKLY,MONTHLY,YEARLY]  
@@ -32,10 +35,10 @@ tunit      time units (default = "days since 1900-01-01 00:00:00")
 ttype      time data type (default = "i4")                         
 =========  ==============================================================                                                                            
 
-Sample
+sample
 ------
 
-Sample dated polygon map series to netcdf grid using a query. 
+sample dated polygon map series to netcdf grid using a query. 
 
 ==========  ==============================================================                                                                            
 Parameter   Description                                     
@@ -61,8 +64,9 @@ Query
 
 option `--revpri` should be used in queries of the 'next' feature of interest 
 (earliest feature that is greater than current date). 
+
     
-Raster
+raster
 ------
 
 Add a single raster variable to existing netcdf file
